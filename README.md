@@ -1,8 +1,13 @@
-[![Build Status](https://travis-ci.org/captray/rigby.svg?branch=master)](https://travis-ci.org/captray/rigby)
+[![Build Status](https://travis-ci.org/captray-zz/rigby.svg?branch=master)](https://travis-ci.org/captray/rigby)
 
 # rigby
 
-React is great, but... y'know
+React is great, but... y'know.  Name inspired from Silicon Valley on HBO
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/pF8o3UrwksU/0.jpg)](https://www.youtube.com/watch?v=pF8o3UrwksU)
+
+## Why
+
+Less boilerplate when creating Stores and a more fluent API for doing so. When using rigby with React it allows you to access shared store state and have changes to that state reflected in the UI.
 
 ## Installation
 
@@ -92,9 +97,95 @@ import Rigby from "rigby";
 Rigby.dispatch("addTodo", "Your New Todo", false);
 ```
 
-## Why
+or call the methods on the store directly
+```javascript
+import TodoStore from "./store";
 
-Less boilerplate when creating Stores and a more fluent API for doing so.
+TodoStore.addTodo("Your New Todo", false);
+```
+
+## With React Classes
+```javascript
+import * as React from 'react'
+import CounterStore from "./store";
+
+export class Counter extends React.Component {
+    onStoreChangeCallbackId = 0;
+    state = CounterStore.getState();
+    componentDidMount() {
+        this.onStoreChangeCallbackId = CounterStore.listen((counterStoreState) => {
+            // can use forceUpdate here too if you'd prefer and grab the store state in render
+            this.setState(counterStoreState);
+        });
+    }
+    componentWillUnmount() {
+        // stop listening for changes
+        CounterStore.mute(this.onStoreChangeCallbackId);
+    }
+    render() {
+        const { count } = this.state;
+        return (
+            <button onClick={() => CounterStore.increment()}>{count}</button>
+        )
+    }
+}
+```
+
+## With React Hooks
+
+This is the hook itself, currently not in the source, so copy this into your project.
+```javascript
+import * as React from "react";
+
+export function useRigby(store) {
+    const [, forceUpdate] = React.useState({});
+    React.useEffect(() => {
+        const callbackId = store.listen(() => {
+            forceUpdate({});
+        });
+
+        return () => store.mute(callbackId);
+    }, []);
+
+    return {
+        state: store.getState(),
+        store
+    };
+}
+```
+Typescript version
+```typescript
+import * as React from "react";
+
+export function useRigby<T extends Store<any>>(store: T) {
+    const [, forceUpdate] = React.useState({});
+    React.useEffect(() => {
+        const callbackId = store.listen(() => {
+            forceUpdate({});
+        });
+
+        return () => store.mute(callbackId);
+    }, []);
+
+    return {
+        state: store.getState(),
+        store
+    };
+}
+```
+
+Using the hook:
+```typescript
+import { useRigby } from "../hooks";
+import CounterStore from "./store";
+
+export function Counter() {
+    const { state: counterStoreState, store } = useRigby(CounterStore);
+    return (
+        <button onClick={() => store.increment()}>Increment {counterStoreState.count}</button>
+    );
+}
+```
 
 ## Plans
 
